@@ -1,0 +1,44 @@
+package ru.razumoff.service.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import ru.razumoff.commonlib.exceptions.ErrorCode;
+import ru.razumoff.commonlib.exceptions.PlatformException;
+import ru.razumoff.dao.dto.request.RegisterRequest;
+import ru.razumoff.dao.entity.UserProfileEntity;
+import ru.razumoff.dao.repository.UserProfileRepository;
+import ru.razumoff.service.IUserProfileService;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class UserProfileService implements IUserProfileService {
+
+    private final UserProfileRepository repository;
+
+
+    @Override
+    public UserProfileEntity getProfileByUserId(UUID uuid) {
+        return repository.findByUserId(uuid).orElseThrow(
+                () -> new PlatformException(ErrorCode.AUTH_USER_PROFILE_NOT_FOUND)
+        );
+    }
+
+    @Override
+    public void addUserProfile(UUID id, RegisterRequest request) {
+        UserProfileEntity profile = new UserProfileEntity();
+        profile.setUserId(id);
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
+        profile.setMiddleName(request.getMiddleName());
+        profile.setGender(request.getGender());
+        profile.setBirthDate(request.getBirthDate());
+        profile.setCreatedAt(OffsetDateTime.now());
+
+        repository.save(profile);
+    }
+}

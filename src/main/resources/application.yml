@@ -1,0 +1,43 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: Цифровой портал для репетиторов (сервис для работы с пользователями и авторизацией)
+    version: 1.0
+  datasource:
+    url: ${URL_DB}
+    username: ${USERNAME_DB}
+    password: ${PASSWORD_DB}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate.default_schema: ${DB_SCHEMA}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    encoding: UTF-8
+    default-schema: ${DB_SCHEMA}
+    schemas: ${DB_SCHEMA}
+    create-schemas: true
+
+springdoc:
+  api-docs:
+    path: /teacher-portal/auth-service/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: alpha
+  paths-to-match:
+    - /api/**
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+jwt:
+  secret: ${JWT_SECRET_KEY:ajscqSVPNj4GNzF+Ln2H6yaE2etWGExa618+TDP96ZE=}
+  access-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS:300000} # 300000
+  refresh-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS:604800000}
