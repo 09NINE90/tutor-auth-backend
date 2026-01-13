@@ -35,6 +35,7 @@ public class UserProfileService implements IUserProfileService {
         );
 
         entity.setAvatarUrl(imageUrl);
+        entity.setUpdatedAt(OffsetDateTime.now());
         repository.save(entity);
     }
 
