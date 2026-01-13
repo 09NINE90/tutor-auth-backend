@@ -2,14 +2,15 @@ package ru.razumoff.api;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import ru.razumoff.config.security.JwtUserPrincipal;
+import ru.razumoff.dao.dto.response.AvatarResponse;
 import ru.razumoff.dao.dto.response.UserProfileResponse;
 import ru.razumoff.service.IUserService;
 
@@ -30,5 +31,13 @@ public class UserController {
     @Operation(summary = "Получить данные в профиль пользователя")
     public ResponseEntity<UserProfileResponse> getUserById(@AuthenticationPrincipal JwtUserPrincipal principal) {
         return ResponseEntity.ok(userService.getUserProfileById(principal.getId()));
+    }
+
+    @PostMapping("/upload-avatar")
+    @Operation(summary = "Обновить аватар пользователя")
+    public ResponseEntity<AvatarResponse> uploadBaseImage(
+            @AuthenticationPrincipal JwtUserPrincipal principal,
+            @NotNull @RequestParam("image") MultipartFile avatarFile) {
+        return ResponseEntity.ok(userService.uploadAvatar(principal.getId(), avatarFile));
     }
 }
