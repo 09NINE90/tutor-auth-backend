@@ -9,5 +9,7 @@ import java.util.UUID;
 public interface IUserProfileService {
     UserProfileEntity getProfileByUserId(UUID uuid);
 
+    void updateProfileAvatar(UUID uuid, String imageUrl);
+
     void addUserProfile(UUID id, RegisterRequest request);
 }

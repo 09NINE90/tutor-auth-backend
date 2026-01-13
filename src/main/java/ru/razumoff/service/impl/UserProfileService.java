@@ -29,6 +29,16 @@ public class UserProfileService implements IUserProfileService {
     }
 
     @Override
+    public void updateProfileAvatar(UUID uuid, String imageUrl) {
+        UserProfileEntity entity = repository.findByUserId(uuid).orElseThrow(
+                () -> new PlatformException(ErrorCode.AUTH_USER_PROFILE_NOT_FOUND)
+        );
+
+        entity.setAvatarUrl(imageUrl);
+        repository.save(entity);
+    }
+
+    @Override
     public void addUserProfile(UUID id, RegisterRequest request) {
         UserProfileEntity profile = new UserProfileEntity();
         profile.setUserId(id);
