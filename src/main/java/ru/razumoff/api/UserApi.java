@@ -22,7 +22,7 @@ import static ru.razumoff.Constants.ApiDocs.USER_TAG_NAME;
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
 @Tag(name = USER_TAG_NAME, description = USER_TAG_DESCRIPTION)
-public class UserController {
+public class UserApi {
 
     private final IUserService userService;
 

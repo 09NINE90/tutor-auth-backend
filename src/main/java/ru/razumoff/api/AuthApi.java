@@ -25,7 +25,7 @@ import static ru.razumoff.Constants.REFRESH_COOKIE_NAME;
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 @Tag(name = AUTH_TAG_NAME, description = AUTH_TAG_DESCRIPTION)
-public class AuthController {
+public class AuthApi {
 
     private final IAuthService authService;
     private final ICookieService cookieService;
