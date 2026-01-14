@@ -14,4 +14,19 @@ public class Constants {
         public static final String USER_TAG_NAME = "Профили пользователей";
         public static final String USER_TAG_DESCRIPTION = "Управление данными профилей";
     }
+
+    @UtilityClass
+    public class Minio {
+        public static final String PUBLIC_READ_POLICY_TEMPLATE = """
+            {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Principal": "*",
+                "Action": ["s3:GetObject"],
+                "Resource": ["arn:aws:s3:::%s/*"]
+              }]
+            }
+            """;
+    }
 }

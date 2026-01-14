@@ -13,6 +13,8 @@ import ru.razumoff.config.MinioConfig;
 import java.net.URI;
 import java.util.UUID;
 
+import static ru.razumoff.Constants.Minio.PUBLIC_READ_POLICY_TEMPLATE;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -23,18 +25,6 @@ public class MinioFileService implements IMinioFileService {
 
     @Value("${minio.bucket-name}")
     private String bucketName;
-
-    private static final String PUBLIC_READ_POLICY_TEMPLATE = """
-            {
-              "Version": "2012-10-17",
-              "Statement": [{
-                "Effect": "Allow",
-                "Principal": "*",
-                "Action": ["s3:GetObject"],
-                "Resource": ["arn:aws:s3:::%s/*"]
-              }]
-            }
-            """;
 
     @Override
     public String uploadAvatarImage(MultipartFile imageFile) {
@@ -78,6 +68,7 @@ public class MinioFileService implements IMinioFileService {
                 .contentType(imageFile.getContentType())
                 .build());
 
+        log.info("Success uploaded image {} to bucket {}", fileName, bucketName);
         return minioConfig.getPublicUrl() + bucketName + "/" + fileName;
     }
 
