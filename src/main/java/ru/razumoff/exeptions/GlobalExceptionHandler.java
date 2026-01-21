@@ -53,12 +53,14 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("status", 400);
-        body.put("error", "VALIDATION_ERROR");
-        body.put("message", "Request validation failed");
-        body.put("timestamp", LocalDateTime.now());
+    public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
+        ApiError error = new ApiError(
+                Instant.now(),
+                400,
+                ErrorCode.VALIDATION_ERROR.getCode(),
+                ErrorCode.VALIDATION_ERROR.getDefaultMessage(),
+                null
+        );
 
         Map<String, List<String>> fieldErrors = ex.getBindingResult()
                 .getFieldErrors()
@@ -68,12 +70,10 @@ public class GlobalExceptionHandler {
                         Collectors.mapping(FieldError::getDefaultMessage, Collectors.toList())
                 ));
 
-        body.put("fieldErrors", fieldErrors);
+        error.setFieldErrors(fieldErrors);
 
-        return ResponseEntity.badRequest().body(body);
+        return ResponseEntity.badRequest().body(error);
     }
-
-
 
 }
 
