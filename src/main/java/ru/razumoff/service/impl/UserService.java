@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import ru.razumoff.commonlib.dto.integration.ProfileRsDto;
 import ru.razumoff.commonlib.exceptions.ErrorCode;
 import ru.razumoff.commonlib.exceptions.PlatformException;
 import ru.razumoff.dao.dto.response.AvatarResponse;
@@ -16,7 +17,12 @@ import ru.razumoff.minio.IMinioFileService;
 import ru.razumoff.service.IUserProfileService;
 import ru.razumoff.service.IUserService;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -44,7 +50,7 @@ public class UserService implements IUserService {
                 .middleName(userProfile.getMiddleName())
                 .birthDate(userProfile.getBirthDate())
                 .gender(userProfile.getGender().getRu_name())
-                .avatarUrl(userProfile.getAvatarUrl())
+                .avatarUrl(minIOFileService.generatePublicUrl(userProfile.getAvatarS3Key()))
                 .build();
     }
 
@@ -57,7 +63,7 @@ public class UserService implements IUserService {
 
         UserProfileEntity userProfile = userProfileService.getProfileByUserId(uuid);
 
-        String oldAvatarUrl = userProfile.getAvatarUrl();
+        String oldAvatarUrl = userProfile.getAvatarS3Key();
         if (oldAvatarUrl != null && !oldAvatarUrl.isBlank()) {
             try {
                 minIOFileService.deleteImage(oldAvatarUrl);
@@ -66,10 +72,41 @@ public class UserService implements IUserService {
             }
         }
 
-        String imageUrl = minIOFileService.uploadAvatarImage(avatarFile);
+        String s3Key = minIOFileService.uploadAvatarImage(avatarFile);
 
-        userProfileService.updateProfileAvatar(entity.getId(), imageUrl);
+        userProfileService.updateProfileAvatar(entity.getId(), s3Key);
 
-        return new AvatarResponse(imageUrl);
+        return new AvatarResponse(minIOFileService.generatePublicUrl(s3Key));
+    }
+
+    @Override
+    public List<ProfileRsDto> getUserProfilesByIds(List<UUID> userIds) {
+        List<UserEntity> users = userRepository.findAllById(userIds);
+        List<UserProfileEntity> profiles = userProfileService.getProfilesByUserIds(userIds);
+
+        if (users.isEmpty() || profiles.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<UUID, UserProfileEntity> profileMap = profiles.stream()
+                .collect(Collectors.toMap(
+                        UserProfileEntity::getUserId,
+                        Function.identity(),
+                        (existing, replacement) -> existing
+                ));
+
+        return users.stream()
+                .filter(user -> user.getId() != null)
+                .map(user -> {
+                    UserProfileEntity profile = profileMap.get(user.getId());
+                    return new ProfileRsDto(
+                            user.getId(),
+                            user.getEmail(),
+                            profile != null ? profile.getFirstName() : null,
+                            profile != null ? profile.getLastName() : null,
+                            profile != null ? minIOFileService.generatePublicUrl(profile.getAvatarS3Key()) : null
+                    );
+                })
+                .toList();
     }
 }

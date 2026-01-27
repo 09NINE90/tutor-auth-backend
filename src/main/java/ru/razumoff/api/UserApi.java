@@ -9,10 +9,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import ru.razumoff.commonlib.dto.integration.ProfileRsDto;
 import ru.razumoff.config.security.JwtUserPrincipal;
 import ru.razumoff.dao.dto.response.AvatarResponse;
 import ru.razumoff.dao.dto.response.UserProfileResponse;
 import ru.razumoff.service.IUserService;
+
+import java.util.List;
+import java.util.UUID;
 
 import static ru.razumoff.Constants.ApiDocs.USER_TAG_DESCRIPTION;
 import static ru.razumoff.Constants.ApiDocs.USER_TAG_NAME;
@@ -39,5 +43,10 @@ public class UserApi {
             @AuthenticationPrincipal JwtUserPrincipal principal,
             @NotNull @RequestParam("image") MultipartFile avatarFile) {
         return ResponseEntity.ok(userService.uploadAvatar(principal.getId(), avatarFile));
+    }
+
+    @PostMapping("/profiles")
+    public ResponseEntity<List<ProfileRsDto>> getUserProfiles(@RequestBody List<UUID> userIds) {
+        return ResponseEntity.ok(userService.getUserProfilesByIds(userIds));
     }
 }

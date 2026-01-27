@@ -15,6 +15,7 @@ public class JwtUserPrincipal {
 
     private UUID id;
     private String email;
+    private String token;
     private Collection<? extends GrantedAuthority> authorities;
 
     public void requireRole(String role) {

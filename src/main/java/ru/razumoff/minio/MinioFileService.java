@@ -1,6 +1,7 @@
 package ru.razumoff.minio;
 
 import io.minio.*;
+import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,9 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import ru.razumoff.commonlib.exceptions.ErrorCode;
 import ru.razumoff.commonlib.exceptions.PlatformException;
-import ru.razumoff.config.MinioConfig;
 
-import java.net.URI;
 import java.util.UUID;
 
 import static ru.razumoff.Constants.Minio.PUBLIC_READ_POLICY_TEMPLATE;
@@ -21,7 +20,6 @@ import static ru.razumoff.Constants.Minio.PUBLIC_READ_POLICY_TEMPLATE;
 public class MinioFileService implements IMinioFileService {
 
     private final MinioClient minioClient;
-    private final MinioConfig minioConfig;
 
     @Value("${minio.bucket-name}")
     private String bucketName;
@@ -38,23 +36,35 @@ public class MinioFileService implements IMinioFileService {
     }
 
     @Override
-    public void deleteImage(String imageUrl) {
+    public void deleteImage(String s3Key) {
         try {
-            URI uri = URI.create(imageUrl);
-            String path = uri.getPath().substring(1);
-            String[] parts = path.split("/", 2);
-            String bucket = parts[0];
-            String object = parts[1];
-
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
-                            .bucket(bucket)
-                            .object(object)
+                            .bucket(bucketName)
+                            .object(s3Key)
                             .build()
             );
         } catch (Exception e) {
-            log.error("Failed to delete image from bucket {}", bucketName, e);
+            log.error("Failed to delete image from bucket {}, file: {}", bucketName, s3Key, e);
             throw new PlatformException(ErrorCode.FAILED_DELETE_IMAGE);
+        }
+    }
+
+    @Override
+    public String generatePublicUrl(String s3Key) {
+        if (s3Key.isBlank()) return "";
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucketName)
+                            .object(s3Key)
+                            .expiry(7 * 24 * 60 * 60)
+                            .build()
+            );
+        } catch (Exception e) {
+            log.error("Presigned failed for {}", s3Key, e);
+            throw new RuntimeException("S3 access error", e);
         }
     }
 
@@ -68,8 +78,8 @@ public class MinioFileService implements IMinioFileService {
                 .contentType(imageFile.getContentType())
                 .build());
 
-        log.info("Success uploaded image {} to bucket {}", fileName, bucketName);
-        return minioConfig.getPublicUrl() + bucketName + "/" + fileName;
+        log.info("Success uploaded file {} to bucket {}", fileName, bucketName);
+        return fileName;
     }
 
     public void createBucketWithPolicy(String bucketName) throws Exception {

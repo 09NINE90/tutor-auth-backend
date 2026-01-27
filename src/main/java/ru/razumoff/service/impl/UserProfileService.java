@@ -11,6 +11,7 @@ import ru.razumoff.dao.repository.UserProfileRepository;
 import ru.razumoff.service.IUserProfileService;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -29,12 +30,12 @@ public class UserProfileService implements IUserProfileService {
     }
 
     @Override
-    public void updateProfileAvatar(UUID uuid, String imageUrl) {
+    public void updateProfileAvatar(UUID uuid, String s3Key) {
         UserProfileEntity entity = repository.findByUserId(uuid).orElseThrow(
                 () -> new PlatformException(ErrorCode.AUTH_USER_PROFILE_NOT_FOUND)
         );
 
-        entity.setAvatarUrl(imageUrl);
+        entity.setAvatarS3Key(s3Key);
         entity.setUpdatedAt(OffsetDateTime.now());
         repository.save(entity);
     }
@@ -51,5 +52,10 @@ public class UserProfileService implements IUserProfileService {
         profile.setCreatedAt(OffsetDateTime.now());
 
         repository.save(profile);
+    }
+
+    @Override
+    public List<UserProfileEntity> getProfilesByUserIds(List<UUID> userIds) {
+        return repository.findByUserIds(userIds);
     }
 }

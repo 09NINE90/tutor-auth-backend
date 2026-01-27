@@ -56,10 +56,10 @@ public class UserProfileEntity {
     private GenderType gender;
 
     /**
-     * Ссылка на аватар пользователя
+     * Ключ аватара пользователя
      */
-    @Column(name = "avatar_url")
-    private String avatarUrl;
+    @Column(name = "avatar_s3_key")
+    private String avatarS3Key;
 
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

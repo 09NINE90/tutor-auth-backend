@@ -7,5 +7,7 @@ public interface IMinioFileService {
     String uploadAvatarImage(MultipartFile imageFile);
 
     void deleteImage(String oldAvatarUrl);
+
+    String generatePublicUrl(String s3Key);
 }
 
