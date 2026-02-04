@@ -17,10 +17,7 @@ import ru.razumoff.minio.IMinioFileService;
 import ru.razumoff.service.IUserProfileService;
 import ru.razumoff.service.IUserService;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -33,6 +30,9 @@ public class UserService implements IUserService {
     private final IUserProfileService userProfileService;
     private final IMinioFileService minIOFileService;
 
+    /**
+     * Получить полный профиль пользователя (User + Profile + Avatar URL)
+     */
     @Override
     public UserProfileResponse getUserProfileById(UUID uuid) {
         UserEntity entity = userRepository.findById(uuid).orElseThrow(
@@ -54,6 +54,9 @@ public class UserService implements IUserService {
                 .build();
     }
 
+    /**
+     * Загрузить аватарку: удалить старую + сохранить новую в MinIO
+     */
     @Override
     @Transactional
     public AvatarResponse uploadAvatar(UUID uuid, MultipartFile avatarFile) {
@@ -79,6 +82,9 @@ public class UserService implements IUserService {
         return new AvatarResponse(minIOFileService.generatePublicUrl(s3Key));
     }
 
+    /**
+     * Получить профили по списку userId (User+Profile+Avatar)
+     */
     @Override
     public List<ProfileRsDto> getUserProfilesByIds(List<UUID> userIds) {
         List<UserEntity> users = userRepository.findAllById(userIds);

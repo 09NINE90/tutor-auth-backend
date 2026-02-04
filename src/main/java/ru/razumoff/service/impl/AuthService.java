@@ -33,6 +33,10 @@ public class AuthService implements IAuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
 
+    /**
+     * Регистрация нового пользователя STUDENT
+     * Создает UserEntity + Profile + JWT токены
+     */
     @Transactional
     public TokenResponse register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
@@ -43,7 +47,7 @@ public class AuthService implements IAuthService {
             UserEntity user = new UserEntity();
             user.setEmail(request.getEmail());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-            user.setRoles(new String[]{"USER"});
+            user.setRoles(new String[]{"STUDENT"});
             user.setEnabled(true);
             user.setCreatedAt(OffsetDateTime.now());
 
@@ -68,6 +72,10 @@ public class AuthService implements IAuthService {
         }
     }
 
+    /**
+     * Авторизация пользователя по email/password
+     * Возвращает JWT access+refresh токены
+     */
     public TokenResponse login(LoginRequest request) {
         try {
             var authToken = new UsernamePasswordAuthenticationToken(
@@ -100,6 +108,10 @@ public class AuthService implements IAuthService {
         }
     }
 
+    /**
+     * Обновление access токена по refresh токену
+     * Выдает новую пару access+refresh токенов
+     */
     public TokenResponse refresh(String refreshToken) {
         if (!jwtService.isTokenValid(refreshToken)) {
             throw new PlatformException(ErrorCode.AUTH_REFRESH_INVALID);

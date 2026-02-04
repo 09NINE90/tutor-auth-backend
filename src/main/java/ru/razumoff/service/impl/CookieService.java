@@ -15,6 +15,9 @@ import static ru.razumoff.Constants.REFRESH_COOKIE_NAME;
 public class CookieService implements ICookieService {
 
 
+    /**
+     * Установка refresh токена в httpOnly cookie (7 дней)
+     */
     public void addRefreshCookie(HttpServletResponse response, String refreshToken) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
@@ -26,6 +29,9 @@ public class CookieService implements ICookieService {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
+    /**
+     * Удаление refresh cookie (maxAge=0)
+     */
     public void deleteRefreshCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
                 .httpOnly(true)

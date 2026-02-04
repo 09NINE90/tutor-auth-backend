@@ -24,6 +24,9 @@ public class MinioFileService implements IMinioFileService {
     @Value("${minio.bucket-name}")
     private String bucketName;
 
+    /**
+     * Загрузка аватарки в MinIO (валидация + UUID имя)
+     */
     @Override
     public String uploadAvatarImage(MultipartFile imageFile) {
         validateImage(imageFile);
@@ -35,6 +38,9 @@ public class MinioFileService implements IMinioFileService {
         }
     }
 
+    /**
+     * Удаление файла из MinIO по S3 ключу
+     */
     @Override
     public void deleteImage(String s3Key) {
         try {
@@ -50,9 +56,12 @@ public class MinioFileService implements IMinioFileService {
         }
     }
 
+    /**
+     * Генерация публичной presigned URL (7 дней)
+     */
     @Override
     public String generatePublicUrl(String s3Key) {
-        if (s3Key.isBlank()) return "";
+        if (s3Key == null || s3Key.isBlank()) return "";
         try {
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
@@ -68,6 +77,9 @@ public class MinioFileService implements IMinioFileService {
         }
     }
 
+    /**
+     * Загрузка изображения в bucket (создание bucket если нет)
+     */
     private String uploadImage(MultipartFile imageFile, String bucketName) throws Exception {
         String fileName = UUID.randomUUID() + "." + extractExtension(imageFile.getOriginalFilename());
         createBucketWithPolicy(bucketName);
@@ -82,6 +94,9 @@ public class MinioFileService implements IMinioFileService {
         return fileName;
     }
 
+    /**
+     * Создание bucket с public-read политикой
+     */
     public void createBucketWithPolicy(String bucketName) throws Exception {
         boolean bucketExists = minioClient.bucketExists(BucketExistsArgs.builder()
                 .bucket(bucketName)
@@ -103,6 +118,9 @@ public class MinioFileService implements IMinioFileService {
                 .build());
     }
 
+    /**
+     * Валидация изображения (размер <10MB, image/*)
+     */
     private void validateImage(MultipartFile file) {
         if (file.isEmpty() || file.getSize() > 10 * 1024 * 1024 || !file.getContentType().startsWith("image/")) {
             log.error("Invalid image file: {}", file.getOriginalFilename());
@@ -110,6 +128,9 @@ public class MinioFileService implements IMinioFileService {
         }
     }
 
+    /**
+     * Извлечение расширения из filename
+     */
     private String extractExtension(String filename) {
         return filename != null ? filename.substring(filename.lastIndexOf('.') + 1) : "png";
     }
