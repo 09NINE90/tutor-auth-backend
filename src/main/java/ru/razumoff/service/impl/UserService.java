@@ -44,7 +44,6 @@ public class UserService implements IUserService {
         return UserProfileResponse.builder()
                 .id(entity.getId())
                 .email(entity.getEmail())
-                .roles(entity.getRoles())
                 .firstName(userProfile.getFirstName())
                 .lastName(userProfile.getLastName())
                 .middleName(userProfile.getMiddleName())

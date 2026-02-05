@@ -14,7 +14,9 @@ import ru.razumoff.config.security.JwtService;
 import ru.razumoff.dao.dto.request.LoginRequest;
 import ru.razumoff.dao.dto.request.RegisterRequest;
 import ru.razumoff.dao.dto.response.TokenResponse;
+import ru.razumoff.dao.entity.RoleEntity;
 import ru.razumoff.dao.entity.UserEntity;
+import ru.razumoff.dao.repository.RoleRepository;
 import ru.razumoff.dao.repository.UserRepository;
 import ru.razumoff.service.IAuthService;
 import ru.razumoff.service.IUserProfileService;
@@ -32,6 +34,7 @@ public class AuthService implements IAuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final RoleRepository roleRepository;
 
     /**
      * Регистрация нового пользователя STUDENT
@@ -47,25 +50,36 @@ public class AuthService implements IAuthService {
             UserEntity user = new UserEntity();
             user.setEmail(request.getEmail());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-            user.setRoles(new String[]{"STUDENT"});
             user.setEnabled(true);
             user.setCreatedAt(OffsetDateTime.now());
+
+            RoleEntity studentRole = roleRepository.findByName("STUDENT")
+                    .orElseGet(() -> {
+                        RoleEntity newRole = new RoleEntity();
+                        newRole.setName("STUDENT");
+                        newRole.setDescription("Студент");
+                        return roleRepository.save(newRole);
+                    });
+
+            user.getRoles().add(studentRole);
 
             UserEntity savedUser = userRepository.save(user);
             userProfileService.addUserProfile(user.getId(), request);
 
+            String[] roleNames = getRoleNames(user);
+
             String access = jwtService.generateAccessToken(
                     savedUser.getId(),
                     savedUser.getEmail(),
-                    savedUser.getRoles()
+                    roleNames
             );
             String refresh = jwtService.generateRefreshToken(
                     savedUser.getId(),
                     savedUser.getEmail(),
-                    savedUser.getRoles()
+                    roleNames
             );
 
-            return new TokenResponse(access, refresh, user.getRoles());
+            return new TokenResponse(access, refresh, null);
         } catch (Exception e) {
             log.error("Registration failed for {}: {}", request.getEmail(), e.getMessage());
             throw new PlatformException(ErrorCode.AUTH_REGISTRATION_FAILED);
@@ -83,22 +97,22 @@ public class AuthService implements IAuthService {
             );
             authenticationManager.authenticate(authToken);
 
-            UserEntity user = userRepository.findByEmail(request.getEmail()).orElseThrow(
-                    () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
-            );
+            UserEntity user = getUserWithRolesOrThrow(request.getEmail());
+
+            String[] roleNames = getRoleNames(user);
 
             String access = jwtService.generateAccessToken(
                     user.getId(),
                     user.getEmail(),
-                    user.getRoles()
+                    roleNames
             );
             String refresh = jwtService.generateRefreshToken(
                     user.getId(),
                     user.getEmail(),
-                    user.getRoles()
+                    roleNames
             );
 
-            return new TokenResponse(access, refresh, user.getRoles());
+            return new TokenResponse(access, refresh, null);
         } catch (AuthenticationException ex) {
             log.warn("Login failed for {}: invalid credentials", request.getEmail());
             throw new PlatformException(ErrorCode.AUTH_INVALID_CREDENTIALS);
@@ -122,21 +136,43 @@ public class AuthService implements IAuthService {
                 () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
         );
 
+        UserEntity userWithRoles = getUserWithRolesOrThrow(user.getEmail());
+
+        String[] roleNames = getRoleNames(userWithRoles);
+
         String newAccess = jwtService.generateAccessToken(
-                user.getId(),
-                user.getEmail(),
-                user.getRoles()
+                userWithRoles.getId(),
+                userWithRoles.getEmail(),
+                roleNames
         );
         String newRefresh = jwtService.generateRefreshToken(
-                user.getId(),
-                user.getEmail(),
-                user.getRoles()
+                userWithRoles.getId(),
+                userWithRoles.getEmail(),
+                roleNames
         );
 
         // TODO: проверить в БД, не отозван ли
         // refreshTokenRepository.findActiveByToken(refreshToken).orElseThrow();
 
         // TODO: сохранить новый в БД и пометить старый как использованный
-        return new TokenResponse(newAccess, newRefresh, user.getRoles());
+        return new TokenResponse(newAccess, newRefresh, null);
+    }
+
+    /**
+     * Преобразование ролей пользователя в массив
+     */
+    private String[] getRoleNames(UserEntity user) {
+        return user.getRoles().stream()
+                .map(RoleEntity::getName)
+                .toArray(String[]::new);
+    }
+
+    /**
+     * Получть пользователя со списком его ролей по email
+     */
+    private UserEntity getUserWithRolesOrThrow(String userEmail) {
+        return userRepository.findByEmailWithRoles(userEmail).orElseThrow(
+                () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
+        );
     }
 }
