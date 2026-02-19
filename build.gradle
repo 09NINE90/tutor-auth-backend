@@ -15,6 +15,11 @@ java {
 }
 
 repositories {
+    maven {
+        name = 'MinIO'
+        url = 'http://razum0ff.ru:9000/maven-repository'
+        allowInsecureProtocol = true
+    }
     mavenLocal()
     mavenCentral()
 }
