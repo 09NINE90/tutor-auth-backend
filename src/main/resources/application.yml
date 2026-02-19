@@ -54,3 +54,6 @@ minio:
   access-key: ${USERNAME_MINIO:minio}
   secret-key: ${PASSWORD_MINIO:minio123}
   bucket-name: ${BUCKET_NAME:avatar-images}
+
+origins:
+  front: ${FRONT_ORIGIN:http://localhost:3000}
