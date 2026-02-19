@@ -71,10 +71,5 @@ public class RegisterRequest {
     )
     private GenderType gender;
 
-    @Schema(
-            description = "URL аватара пользователя",
-            example = "https://example.com/avatars/user123.jpg"
-    )
-    @URL(message = "Неверный формат URL аватара")
-    private String avatarUrl;
+    private boolean tutor;
 }

@@ -2,6 +2,7 @@ package ru.razumoff.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -53,15 +54,9 @@ public class AuthService implements IAuthService {
             user.setEnabled(true);
             user.setCreatedAt(OffsetDateTime.now());
 
-            RoleEntity studentRole = roleRepository.findByName("STUDENT")
-                    .orElseGet(() -> {
-                        RoleEntity newRole = new RoleEntity();
-                        newRole.setName("STUDENT");
-                        newRole.setDescription("Студент");
-                        return roleRepository.save(newRole);
-                    });
+            RoleEntity roleUser = getRoleEntity(request.isTutor());
 
-            user.getRoles().add(studentRole);
+            user.getRoles().add(roleUser);
 
             UserEntity savedUser = userRepository.save(user);
             userProfileService.addUserProfile(user.getId(), request);
@@ -84,6 +79,31 @@ public class AuthService implements IAuthService {
             log.error("Registration failed for {}: {}", request.getEmail(), e.getMessage());
             throw new PlatformException(ErrorCode.AUTH_REGISTRATION_FAILED);
         }
+    }
+
+    /**
+     * Установка роли пользователя в зависимости от вхожного параметра
+     */
+    private RoleEntity getRoleEntity(boolean isTutor) {
+        RoleEntity roleUser;
+        if (isTutor) {
+            roleUser = roleRepository.findByName("TUTOR")
+                    .orElseGet(() -> {
+                        RoleEntity newRole = new RoleEntity();
+                        newRole.setName("TUTOR");
+                        newRole.setDescription("Преподаватель");
+                        return roleRepository.save(newRole);
+                    });
+        } else {
+            roleUser = roleRepository.findByName("STUDENT")
+                    .orElseGet(() -> {
+                        RoleEntity newRole = new RoleEntity();
+                        newRole.setName("STUDENT");
+                        newRole.setDescription("Студент");
+                        return roleRepository.save(newRole);
+                    });
+        }
+        return roleUser;
     }
 
     /**

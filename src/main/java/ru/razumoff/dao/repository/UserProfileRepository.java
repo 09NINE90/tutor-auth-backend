@@ -57,6 +57,12 @@ public interface UserProfileRepository extends JpaRepository<UserProfileEntity, 
             )
                 AND u.id != :userId
                 AND ce.user_id IS NULL
+                AND u.id NOT IN (
+                                SELECT ur.user_id
+                                FROM user_service.user_roles ur
+                                JOIN user_service.roles r ON ur.role_id = r.id
+                                WHERE r.name = 'TUTOR'
+                            )
             ORDER BY 
                 (SELECT COUNT(*) FROM unnest(:patternsArray) AS pat 
                  WHERE lower(p.first_name || ' ' || p.last_name) LIKE pat
