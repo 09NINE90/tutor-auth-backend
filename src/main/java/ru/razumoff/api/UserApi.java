@@ -64,7 +64,8 @@ public class UserApi {
     }
 
     @PostMapping("/profiles")
-    public ResponseEntity<List<ProfileRsDto>> getUserProfiles(@RequestBody List<UUID> userIds) {
+    public ResponseEntity<List<ProfileRsDto>> getUserProfiles(@AuthenticationPrincipal JwtUserPrincipal principal,
+                                                              @RequestBody List<UUID> userIds) {
         return ResponseEntity.ok(userService.getUserProfilesByIds(userIds));
     }
 }
