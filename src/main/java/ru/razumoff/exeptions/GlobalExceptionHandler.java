@@ -6,9 +6,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ru.razumoff.commonlib.dto.ApiError;
-import ru.razumoff.commonlib.exceptions.ErrorCode;
-import ru.razumoff.commonlib.exceptions.PlatformException;
+import ru.razumoff.exceptions.ApiError;
+import ru.razumoff.exceptions.ErrorCode;
+import ru.razumoff.exceptions.PlatformException;
 
 import java.time.Instant;
 import java.util.List;

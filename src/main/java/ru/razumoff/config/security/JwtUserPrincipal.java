@@ -3,8 +3,8 @@ package ru.razumoff.config.security;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
-import ru.razumoff.commonlib.exceptions.ErrorCode;
-import ru.razumoff.commonlib.exceptions.PlatformException;
+import ru.razumoff.exceptions.ErrorCode;
+import ru.razumoff.exceptions.PlatformException;
 
 import java.util.Collection;
 import java.util.UUID;

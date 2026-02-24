@@ -6,8 +6,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import ru.razumoff.commonlib.exceptions.ErrorCode;
-import ru.razumoff.commonlib.exceptions.PlatformException;
+import ru.razumoff.exceptions.ErrorCode;
+import ru.razumoff.exceptions.PlatformException;
 import ru.razumoff.dao.entity.UserEntity;
 import ru.razumoff.dao.repository.UserRepository;
 

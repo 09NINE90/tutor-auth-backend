@@ -1,7 +1,7 @@
 package ru.razumoff.service;
 
 import org.springframework.web.multipart.MultipartFile;
-import ru.razumoff.commonlib.dto.integration.ProfileRsDto;
+import ru.razumoff.dto.integration.ProfileRsDto;
 import ru.razumoff.dao.dto.response.AvatarResponse;
 import ru.razumoff.dao.dto.response.UserProfileResponse;
 

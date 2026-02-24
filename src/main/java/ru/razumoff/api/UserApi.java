@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import ru.razumoff.commonlib.dto.integration.ProfileRsDto;
+import ru.razumoff.dto.integration.ProfileRsDto;
 import ru.razumoff.config.security.JwtUserPrincipal;
 import ru.razumoff.dao.dto.internal.SearchUserDto;
 import ru.razumoff.dao.dto.response.AvatarResponse;
