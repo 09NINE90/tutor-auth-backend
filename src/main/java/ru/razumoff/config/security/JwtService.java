@@ -47,19 +47,26 @@ public class JwtService {
         return extractClaim(token, claims -> claims.get("email", String.class));
     }
 
-    public String[] extractRoles(String token) {
+    public String extractRole(String token) {
+        return extractClaim(token, claims -> claims.get("role", String.class));
+    }
+
+    public Set<String> extractPermissions(String token) {
         return extractClaim(token, claims -> {
-            Object raw = claims.get("roles");
-            if (raw instanceof java.util.Collection<?> collection) {
-                return collection.stream()
-                        .map(Object::toString)
-                        .toArray(String[]::new);
-            }
-            if (raw instanceof String s) {
-                return new String[]{s};
-            }
-            return new String[0];
+            Object raw = claims.get("permissions");
+            return convertToSet(raw);
         });
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> convertToSet(Object raw) {
+        if (raw instanceof Collection<?> collection) {
+            return new HashSet<>((Collection<String>) collection);
+        }
+        if (raw instanceof String s) {
+            return Set.of(s);
+        }
+        return Set.of();
     }
 
 
@@ -104,17 +111,23 @@ public class JwtService {
         return createToken(claims, email, refreshExpirationMs);
     }
 
-    public String generateAccessToken(UUID userId, String email, String[] roles) {
+    public String generateAccessToken(UUID userId, String email,
+                                      String role,
+                                      Collection<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", email);
-        claims.put("roles", roles);
+        claims.put("role", role);
+        claims.put("permissions", permissions);
         return createToken(claims, String.valueOf(userId), accessExpirationMs);
     }
 
-    public String generateRefreshToken(UUID userId, String email, String[] roles) {
+    public String generateRefreshToken(UUID userId, String email,
+                                       String role,
+                                       Collection<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("email", email);
-        claims.put("roles", roles);
+        claims.put("role", role);
+        claims.put("permissions", permissions);
         return createToken(claims, String.valueOf(userId), refreshExpirationMs);
     }
 

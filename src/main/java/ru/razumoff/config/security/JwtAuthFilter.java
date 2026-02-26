@@ -7,17 +7,15 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import ru.razumoff.jwt.JwtUserPrincipal;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -51,28 +49,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             UUID userId = jwtService.extractUserId(token);
             String email = jwtService.extractEmail(token);
-            String[] roles = jwtService.extractRoles(token);
+            String role = jwtService.extractRole(token);
+            Set<String> permissions = jwtService.extractPermissions(token);
 
             if (userId != null) {
-                Collection<SimpleGrantedAuthority> authorities =
-                        roles == null
-                                ? java.util.List.of()
-                                : Arrays.stream(roles)
-                                .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-                                .collect(Collectors.toList());
-
                 JwtUserPrincipal principal = new JwtUserPrincipal(
                         userId,
                         email,
                         token,
-                        authorities
+                        role,
+                        permissions
                 );
 
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 principal,
                                 null,
-                                authorities
+                                principal.getAuthorities()
                         );
 
                 authToken.setDetails(
