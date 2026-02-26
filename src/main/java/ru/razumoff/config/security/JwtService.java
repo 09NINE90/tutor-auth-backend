@@ -115,7 +115,7 @@ public class JwtService {
                                       String role,
                                       Collection<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("email", email);
+        claims.put("email", email.trim());
         claims.put("role", role);
         claims.put("permissions", permissions);
         return createToken(claims, String.valueOf(userId), accessExpirationMs);
@@ -125,7 +125,7 @@ public class JwtService {
                                        String role,
                                        Collection<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("email", email);
+        claims.put("email", email.trim());
         claims.put("role", role);
         claims.put("permissions", permissions);
         return createToken(claims, String.valueOf(userId), refreshExpirationMs);

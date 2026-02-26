@@ -45,13 +45,13 @@ public class AuthService implements IAuthService {
      */
     @Transactional
     public TokenResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+        if (userRepository.findByEmail(request.getEmail().trim()).isPresent()) {
             throw new RuntimeException("User already exists");
         }
 
         try {
             UserEntity user = new UserEntity();
-            user.setEmail(request.getEmail());
+            user.setEmail(request.getEmail().trim());
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setEnabled(true);
             user.setCreatedAt(OffsetDateTime.now());
@@ -73,7 +73,7 @@ public class AuthService implements IAuthService {
             );
             String refresh = jwtService.generateRefreshToken(
                     savedUser.getId(),
-                    savedUser.getEmail(),
+                    savedUser.getEmail().trim(),
                     savedUser.getRole().getName(),
                     permissionsNames
             );
