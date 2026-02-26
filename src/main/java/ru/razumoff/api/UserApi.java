@@ -10,11 +10,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import ru.razumoff.dto.integration.ProfileRsDto;
-import ru.razumoff.config.security.JwtUserPrincipal;
 import ru.razumoff.dao.dto.internal.SearchUserDto;
 import ru.razumoff.dao.dto.response.AvatarResponse;
 import ru.razumoff.dao.dto.response.UserProfileResponse;
 import ru.razumoff.dao.dto.response.UserSearchRsDto;
+import ru.razumoff.jwt.JwtUserPrincipal;
 import ru.razumoff.service.ISearchUserService;
 import ru.razumoff.service.IUserService;
 

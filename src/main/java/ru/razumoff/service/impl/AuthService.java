@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.razumoff.config.security.JwtService;
+import ru.razumoff.dao.entity.PermissionEntity;
 import ru.razumoff.exceptions.ErrorCode;
 import ru.razumoff.exceptions.PlatformException;
 import ru.razumoff.dao.dto.request.LoginRequest;
@@ -22,7 +23,9 @@ import ru.razumoff.service.IAuthService;
 import ru.razumoff.service.IUserProfileService;
 
 import java.time.OffsetDateTime;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -55,24 +58,27 @@ public class AuthService implements IAuthService {
 
             RoleEntity roleUser = getRoleEntity(request.isTutor());
 
-            user.getRoles().add(roleUser);
+            user.setRole(roleUser);
 
             UserEntity savedUser = userRepository.save(user);
             userProfileService.addUserProfile(user.getId(), request);
 
-            String[] roleNames = getRoleNames(user);
+            Set<String> permissionsNames = getPermissionsNames(savedUser);
 
             String access = jwtService.generateAccessToken(
                     savedUser.getId(),
                     savedUser.getEmail(),
-                    roleNames
+                    savedUser.getRole().getName(),
+                    permissionsNames
             );
             String refresh = jwtService.generateRefreshToken(
                     savedUser.getId(),
                     savedUser.getEmail(),
-                    roleNames
+                    savedUser.getRole().getName(),
+                    permissionsNames
             );
 
+            log.info("User registered success: {}", user);
             return new TokenResponse(access, refresh, null);
         } catch (Exception e) {
             log.error("Registration failed for {}: {}", request.getEmail(), e.getMessage());
@@ -86,21 +92,13 @@ public class AuthService implements IAuthService {
     private RoleEntity getRoleEntity(boolean isTutor) {
         RoleEntity roleUser;
         if (isTutor) {
-            roleUser = roleRepository.findByName("TUTOR")
-                    .orElseGet(() -> {
-                        RoleEntity newRole = new RoleEntity();
-                        newRole.setName("TUTOR");
-                        newRole.setDescription("Преподаватель");
-                        return roleRepository.save(newRole);
-                    });
+            roleUser = roleRepository.findByName("TUTOR_LIMITED").orElseThrow(
+                    () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
+            );
         } else {
-            roleUser = roleRepository.findByName("STUDENT")
-                    .orElseGet(() -> {
-                        RoleEntity newRole = new RoleEntity();
-                        newRole.setName("STUDENT");
-                        newRole.setDescription("Студент");
-                        return roleRepository.save(newRole);
-                    });
+            roleUser = roleRepository.findByName("STUDENT_FULL").orElseThrow(
+                    () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
+            );
         }
         return roleUser;
     }
@@ -116,21 +114,25 @@ public class AuthService implements IAuthService {
             );
             authenticationManager.authenticate(authToken);
 
-            UserEntity user = getUserWithRolesOrThrow(request.getEmail());
+            UserEntity user = getUserWithRolesAndPermissionsOrThrow(request.getEmail());
 
-            String[] roleNames = getRoleNames(user);
+            String roleName = user.getRole().getName();
+            Set<String> permissionsNames = getPermissionsNames(user);
 
             String access = jwtService.generateAccessToken(
                     user.getId(),
                     user.getEmail(),
-                    roleNames
+                    roleName,
+                    permissionsNames
             );
             String refresh = jwtService.generateRefreshToken(
                     user.getId(),
                     user.getEmail(),
-                    roleNames
+                    roleName,
+                    permissionsNames
             );
 
+            log.info("User login success: {}", user);
             return new TokenResponse(access, refresh, null);
         } catch (AuthenticationException ex) {
             log.warn("Login failed for {}: invalid credentials", request.getEmail());
@@ -155,42 +157,43 @@ public class AuthService implements IAuthService {
                 () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
         );
 
-        UserEntity userWithRoles = getUserWithRolesOrThrow(user.getEmail());
+        UserEntity userWithRoles = getUserWithRolesAndPermissionsOrThrow(user.getEmail());
 
-        String[] roleNames = getRoleNames(userWithRoles);
+        String roleName = userWithRoles.getRole().getName();
+        Set<String> permissionsNames = getPermissionsNames(userWithRoles);
 
         String newAccess = jwtService.generateAccessToken(
                 userWithRoles.getId(),
                 userWithRoles.getEmail(),
-                roleNames
+                roleName,
+                permissionsNames
         );
         String newRefresh = jwtService.generateRefreshToken(
                 userWithRoles.getId(),
                 userWithRoles.getEmail(),
-                roleNames
+                roleName,
+                permissionsNames
         );
 
-        // TODO: проверить в БД, не отозван ли
-        // refreshTokenRepository.findActiveByToken(refreshToken).orElseThrow();
-
-        // TODO: сохранить новый в БД и пометить старый как использованный
+        log.info("Token refreshed success. userId {}", userId);
         return new TokenResponse(newAccess, newRefresh, null);
     }
 
     /**
-     * Преобразование ролей пользователя в массив
+     * Преобразование пермишенов пользователя в список названий
      */
-    private String[] getRoleNames(UserEntity user) {
-        return user.getRoles().stream()
-                .map(RoleEntity::getName)
-                .toArray(String[]::new);
+    private Set<String> getPermissionsNames(UserEntity user) {
+        return user.getRole().getPermissions()
+                .stream()
+                .map(PermissionEntity::getName)
+                .collect(Collectors.toSet());
     }
 
     /**
      * Получть пользователя со списком его ролей по email
      */
-    private UserEntity getUserWithRolesOrThrow(String userEmail) {
-        return userRepository.findByEmailWithRoles(userEmail).orElseThrow(
+    private UserEntity getUserWithRolesAndPermissionsOrThrow(String userEmail) {
+        return userRepository.findByEmailWithRolesAndPermissions(userEmail).orElseThrow(
                 () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
         );
     }
