@@ -55,7 +55,13 @@ public class AuthApi {
 
     @PostMapping("/logout")
     @Operation(summary = "Выход из системы")
-    public ResponseEntity<Void> logout(HttpServletResponse response) {
+    public ResponseEntity<Void> logout(
+            @CookieValue(name = REFRESH_COOKIE_NAME, required = false) String refreshToken,
+            HttpServletResponse response
+    ) {
+        if (refreshToken != null && !refreshToken.isBlank()) {
+            authService.logout(refreshToken);
+        }
         cookieService.deleteRefreshCookie(response);
         return ResponseEntity.noContent().build();
     }
