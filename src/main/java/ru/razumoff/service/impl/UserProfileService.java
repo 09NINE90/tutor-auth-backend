@@ -55,7 +55,7 @@ public class UserProfileService implements IUserProfileService {
         profile.setUserId(id);
         profile.setFirstName(request.getFirstName().trim());
         profile.setLastName(request.getLastName().trim());
-        profile.setMiddleName(request.getMiddleName().trim());
+        profile.setMiddleName(request.getMiddleName() != null ? request.getMiddleName().trim() : null);
         profile.setGender(request.getGender());
         profile.setBirthDate(request.getBirthDate());
         profile.setCreatedAt(OffsetDateTime.now());

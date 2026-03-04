@@ -21,12 +21,13 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        UserEntity user = userRepository.findByEmailWithRolesAndPermissions(email)
+    public UserDetails loadUserByUsername(String login) throws UsernameNotFoundException {
+        UserEntity user = userRepository.findByEmailWithRolesAndPermissions(login)
+                .or(() -> userRepository.findByUsernameWithRolesAndPermissions(login))
                 .orElseThrow(() -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND));
 
         return new org.springframework.security.core.userdetails.User(
-                user.getEmail(),
+                user.getUsername(),
                 user.getPassword(),
                 user.isEnabled(),
                 true, true, true,

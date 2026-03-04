@@ -48,14 +48,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
 
             UUID userId = jwtService.extractUserId(token);
-            String email = jwtService.extractEmail(token);
+            String username = jwtService.extractUsername(token);
             String role = jwtService.extractRole(token);
             Set<String> permissions = jwtService.extractPermissions(token);
 
             if (userId != null) {
                 JwtUserPrincipal principal = new JwtUserPrincipal(
                         userId,
-                        email,
+                        username,
                         token,
                         role,
                         permissions

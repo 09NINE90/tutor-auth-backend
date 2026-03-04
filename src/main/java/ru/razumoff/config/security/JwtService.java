@@ -31,10 +31,6 @@ public class JwtService {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
-    }
-
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
@@ -43,8 +39,8 @@ public class JwtService {
         return UUID.fromString(extractClaim(token, Claims::getSubject));
     }
 
-    public String extractEmail(String token) {
-        return extractClaim(token, claims -> claims.get("email", String.class));
+    public String extractUsername(String token) {
+        return extractClaim(token, claims -> claims.get("username", String.class));
     }
 
     public String extractRole(String token) {
@@ -101,31 +97,31 @@ public class JwtService {
         }
     }
 
-    public String generateAccessToken(String email) {
+    public String generateAccessToken(String username) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, email, accessExpirationMs);
+        return createToken(claims, username, accessExpirationMs);
     }
 
-    public String generateRefreshToken(String email) {
+    public String generateRefreshToken(String username) {
         Map<String, Object> claims = new HashMap<>();
-        return createToken(claims, email, refreshExpirationMs);
+        return createToken(claims, username, refreshExpirationMs);
     }
 
-    public String generateAccessToken(UUID userId, String email,
+    public String generateAccessToken(UUID userId, String username,
                                       String role,
                                       Collection<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("email", email.trim());
+        claims.put("username", username.trim());
         claims.put("role", role);
         claims.put("permissions", permissions);
         return createToken(claims, String.valueOf(userId), accessExpirationMs);
     }
 
-    public String generateRefreshToken(UUID userId, String email,
+    public String generateRefreshToken(UUID userId, String username,
                                        String role,
                                        Collection<String> permissions) {
         Map<String, Object> claims = new HashMap<>();
-        claims.put("email", email.trim());
+        claims.put("username", username.trim());
         claims.put("role", role);
         claims.put("permissions", permissions);
         return createToken(claims, String.valueOf(userId), refreshExpirationMs);
@@ -142,10 +138,10 @@ public class JwtService {
                 .compact();
     }
 
-    public Boolean validateToken(String token, String email) {
+    public Boolean validateToken(String token, String userName) {
         try {
             final String username = extractUsername(token);
-            return (username.equals(email) && !isTokenExpired(token));
+            return (username.equals(userName) && !isTokenExpired(token));
         } catch (Exception e) {
             return false;
         }

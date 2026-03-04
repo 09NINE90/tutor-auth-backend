@@ -9,17 +9,17 @@ import lombok.Data;
 
 @Data
 @Builder
-@Schema(description = "Запрос для аутентификации пользователя по email и паролю")
+@Schema(description = "Запрос для аутентификации пользователя по login и паролю")
 public class LoginRequest {
 
     @Schema(
-            description = "Электронная почта пользователя для входа в систему",
-            example = "user@example.com",
-            maxLength = 254
+            description = "Логин пользователя для входа в систему",
+            example = "User_name_123",
+            maxLength = 50
     )
-    @NotBlank(message = "Email не может быть пустым.")
-    @Email(message = "Неверный формат email")
-    private String email;
+    @Size(min = 3, max = 50, message = "Логин должен содержать от 3 до 50 символов")
+    @NotBlank(message = "Логин не может быть пустым.")
+    private String login;
 
     @Schema(
             description = "Пароль пользователя (минимум 10 символов)",
