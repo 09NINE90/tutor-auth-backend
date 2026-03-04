@@ -51,14 +51,20 @@ public class AuthService implements IAuthService {
      */
     @Transactional
     public TokenResponse register(RegisterRequest request) {
-        String email = request.getEmail().trim();
+        String username = request.getUsername().trim();
+        String email = request.getEmail();
 
         try {
-            if (userRepository.findByEmail(email).isPresent()) {
-                throw new PlatformException(ErrorCode.AUTH_USER_EXISTS);
+            if (userRepository.findByUsername(username).isPresent()) {
+                throw new PlatformException(ErrorCode.AUTH_USER_EXISTS, String.format("Логин \"%s\" занят", username));
+            }
+
+            if (email != null && !email.isEmpty() && userRepository.findByEmail(email).isPresent()) {
+                throw new PlatformException(ErrorCode.AUTH_USER_EXISTS, String.format("Email \"%s\" занят", email));
             }
 
             UserEntity user = new UserEntity();
+            user.setUsername(username);
             user.setEmail(email);
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setEnabled(true);
@@ -75,13 +81,13 @@ public class AuthService implements IAuthService {
 
             String access = jwtService.generateAccessToken(
                     savedUser.getId(),
-                    savedUser.getEmail(),
+                    savedUser.getUsername(),
                     savedUser.getRole().getName(),
                     permissionsNames
             );
             String refresh = jwtService.generateRefreshToken(
                     savedUser.getId(),
-                    savedUser.getEmail().trim(),
+                    savedUser.getUsername().trim(),
                     savedUser.getRole().getName(),
                     permissionsNames
             );
@@ -125,45 +131,46 @@ public class AuthService implements IAuthService {
      * Возвращает JWT access+refresh токены
      */
     public TokenResponse login(LoginRequest request) {
-        String email = request.getEmail().trim();
+        String login = request.getLogin().trim();
 
         try {
+            UserEntity user = getUserWithRolesAndPermissionsOrThrow(login);
+
             var authToken = new UsernamePasswordAuthenticationToken(
-                    email, request.getPassword()
+                    login, request.getPassword()
             );
             authenticationManager.authenticate(authToken);
 
-            UserEntity user = getUserWithRolesAndPermissionsOrThrow(email);
 
             String roleName = user.getRole().getName();
             Set<String> permissionsNames = getPermissionsNames(user);
 
             String access = jwtService.generateAccessToken(
                     user.getId(),
-                    user.getEmail(),
+                    user.getUsername(),
                     roleName,
                     permissionsNames
             );
             String refresh = jwtService.generateRefreshToken(
                     user.getId(),
-                    user.getEmail(),
+                    user.getUsername(),
                     roleName,
                     permissionsNames
             );
 
-            saveAuthEvent(user, email, AuthEventType.LOGIN_SUCCESS, null, null);
+            saveAuthEvent(user, login, AuthEventType.LOGIN_SUCCESS, null, null);
             saveRefreshToken(user, refresh, getDeviceInfo());
 
             log.info("User login success: {}", user);
             return new TokenResponse(access, refresh, null);
         } catch (AuthenticationException ex) {
-            log.warn("Login failed for {}: invalid credentials", request.getEmail());
-            saveAuthEvent(null, email, AuthEventType.LOGIN_FAILED,
+            log.warn("Login failed for {}: invalid credentials", request.getLogin());
+            saveAuthEvent(null, login, AuthEventType.LOGIN_FAILED,
                     ErrorCode.AUTH_INVALID_CREDENTIALS.name(), "Invalid credentials");
             throw new PlatformException(ErrorCode.AUTH_INVALID_CREDENTIALS);
         } catch (Exception e) {
-            log.error("Login failed for {}: {}", request.getEmail(), e.getMessage());
-            saveAuthEvent(null, email, AuthEventType.LOGIN_FAILED,
+            log.error("Login failed for {}: {}", request.getLogin(), e.getMessage());
+            saveAuthEvent(null, login, AuthEventType.LOGIN_FAILED,
                     ErrorCode.INTERNAL_ERROR.name(), e.getMessage());
             throw new PlatformException(ErrorCode.INTERNAL_ERROR);
         }
@@ -188,20 +195,20 @@ public class AuthService implements IAuthService {
                     () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
             );
 
-            UserEntity userWithRoles = getUserWithRolesAndPermissionsOrThrow(user.getEmail());
+            UserEntity userWithRoles = getUserWithRolesAndPermissionsOrThrow(user.getUsername());
 
             String roleName = userWithRoles.getRole().getName();
             Set<String> permissionsNames = getPermissionsNames(userWithRoles);
 
             String newAccess = jwtService.generateAccessToken(
                     userWithRoles.getId(),
-                    userWithRoles.getEmail(),
+                    userWithRoles.getUsername(),
                     roleName,
                     permissionsNames
             );
             String newRefresh = jwtService.generateRefreshToken(
                     userWithRoles.getId(),
-                    userWithRoles.getEmail(),
+                    userWithRoles.getUsername(),
                     roleName,
                     permissionsNames
             );
@@ -257,12 +264,16 @@ public class AuthService implements IAuthService {
     }
 
     /**
-     * Получть пользователя со списком его ролей по email
+     * Получть пользователя со списком его ролей по email или login
      */
-    private UserEntity getUserWithRolesAndPermissionsOrThrow(String userEmail) {
-        return userRepository.findByEmailWithRolesAndPermissions(userEmail).orElseThrow(
-                () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
-        );
+    private UserEntity getUserWithRolesAndPermissionsOrThrow(String login) {
+        return userRepository.findByEmailWithRolesAndPermissions(login)
+                .or(
+                        () -> userRepository.findByUsernameWithRolesAndPermissions(login)
+                )
+                .orElseThrow(
+                        () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
+                );
     }
 
     /**

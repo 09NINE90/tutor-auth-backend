@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.Builder;
 import lombok.Data;
-import org.hibernate.validator.constraints.URL;
 import ru.razumoff.dao.enumz.GenderType;
 
 import java.time.LocalDate;
@@ -18,9 +17,17 @@ public class RegisterRequest {
             example = "user@example.com",
             maxLength = 254
     )
-    @NotBlank(message = "Email не может быть пустым.")
     @Email(message = "Неверный формат email")
     private String email;
+
+    @Schema(
+            description = "Логин пользователя для входа в систему",
+            example = "User_name_123",
+            maxLength = 50
+    )
+    @Size(min = 3, max = 50, message = "Логин должен содержать от 3 до 50 символов")
+    @NotBlank(message = "Логин не может быть пустым.")
+    private String username;
 
     @Schema(
             description = "Пароль пользователя (минимум 10 символов)",

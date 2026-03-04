@@ -27,7 +27,7 @@ repositories {
 dependencies {
     implementation 'ru.razumoff.common:api-errors:1.0.0'
     implementation 'ru.razumoff.common:base-utils:1.0.0'
-    implementation 'ru.razumoff.common:jwt:1.0.1'
+    implementation 'ru.razumoff.common:jwt:1.0.2'
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
