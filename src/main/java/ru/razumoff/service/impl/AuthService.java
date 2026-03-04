@@ -53,19 +53,20 @@ public class AuthService implements IAuthService {
     public TokenResponse register(RegisterRequest request) {
         String username = request.getUsername().trim();
         String email = request.getEmail();
+        boolean isValidEmail = email != null && !email.isEmpty();
 
         try {
             if (userRepository.findByUsername(username).isPresent()) {
                 throw new PlatformException(ErrorCode.AUTH_USER_EXISTS, String.format("Логин \"%s\" занят", username));
             }
 
-            if (email != null && !email.isEmpty() && userRepository.findByEmail(email).isPresent()) {
+            if (isValidEmail && userRepository.findByEmail(email).isPresent()) {
                 throw new PlatformException(ErrorCode.AUTH_USER_EXISTS, String.format("Email \"%s\" занят", email));
             }
 
             UserEntity user = new UserEntity();
             user.setUsername(username);
-            user.setEmail(email);
+            user.setEmail(isValidEmail ? email : null);
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setEnabled(true);
             user.setCreatedAt(OffsetDateTime.now());
