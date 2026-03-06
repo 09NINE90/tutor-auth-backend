@@ -27,6 +27,8 @@ public class RegisterRequest {
     )
     @Size(min = 3, max = 50, message = "Логин должен содержать от 3 до 50 символов")
     @NotBlank(message = "Логин не может быть пустым.")
+    @Pattern(regexp = "^[a-zA-Zа-яёА-ЯЁ0-9_\\-\\.@]+$",
+            message = "Поле должно содержать только буквы, цифры, _, -, ., @")
     private String username;
 
     @Schema(

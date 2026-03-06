@@ -93,7 +93,7 @@ public class AuthService implements IAuthService {
                     permissionsNames
             );
 
-            saveAuthEvent(savedUser, email, AuthEventType.REGISTER_SUCCESS, null, null);
+            saveAuthEvent(savedUser, username, AuthEventType.REGISTER_SUCCESS, null, null);
             saveRefreshToken(savedUser, refresh, getDeviceInfo());
 
             log.info("User registered success: {}", user);
@@ -216,7 +216,7 @@ public class AuthService implements IAuthService {
 
             revokeOldRefreshToken(oldRefreshToken);
             saveRefreshToken(user, newRefresh, getDeviceInfo());
-            saveAuthEvent(user, user.getEmail(), AuthEventType.REFRESH_SUCCESS, null, null);
+            saveAuthEvent(user, user.getUsername(), AuthEventType.REFRESH_SUCCESS, null, null);
 
             log.info("Token refreshed success. userId {}", userId);
             return new TokenResponse(newAccess, newRefresh, null);
@@ -243,7 +243,7 @@ public class AuthService implements IAuthService {
                     token.setRevokedAt(OffsetDateTime.now());
                     refreshTokenRepository.save(token);
 
-                    saveAuthEvent(token.getUser(), token.getUser().getEmail(),
+                    saveAuthEvent(token.getUser(), token.getUser().getUsername(),
                             AuthEventType.LOGOUT, null, null);
 
                     log.info("User {} logged out successfully", token.getUser().getId());

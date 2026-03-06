@@ -22,8 +22,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String login) throws UsernameNotFoundException {
-        UserEntity user = userRepository.findByEmailWithRolesAndPermissions(login)
-                .or(() -> userRepository.findByUsernameWithRolesAndPermissions(login))
+        UserEntity user = userRepository.findByUsernameWithRolesAndPermissions(login)
+                .or(() -> userRepository.findByEmailWithRolesAndPermissions(login))
                 .orElseThrow(() -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND));
 
         return new org.springframework.security.core.userdetails.User(
