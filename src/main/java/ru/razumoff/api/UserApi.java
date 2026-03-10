@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import ru.razumoff.dao.dto.request.EditUserProfileRqDto;
+import ru.razumoff.dao.dto.response.EditUserProfileRsDto;
 import ru.razumoff.dto.integration.ProfileRsDto;
 import ru.razumoff.dao.dto.internal.SearchUserDto;
 import ru.razumoff.dao.dto.response.AvatarResponse;
@@ -38,6 +40,13 @@ public class UserApi {
     @Operation(summary = "Получить данные в профиль пользователя")
     public ResponseEntity<UserProfileResponse> getUserById(@AuthenticationPrincipal JwtUserPrincipal principal) {
         return ResponseEntity.ok(userService.getUserProfileById(principal.getId()));
+    }
+
+    @PutMapping("/profile")
+    @Operation(summary = "Редактировать профиль пользователя")
+    public ResponseEntity<EditUserProfileRsDto> editUserProfile(@AuthenticationPrincipal JwtUserPrincipal principal,
+                                                                @RequestBody EditUserProfileRqDto request) {
+        return ResponseEntity.ok(userService.editUserProfile(principal, request));
     }
 
     @PostMapping("/upload-avatar")

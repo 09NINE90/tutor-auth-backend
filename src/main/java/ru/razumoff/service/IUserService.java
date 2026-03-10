@@ -1,9 +1,12 @@
 package ru.razumoff.service;
 
 import org.springframework.web.multipart.MultipartFile;
+import ru.razumoff.dao.dto.request.EditUserProfileRqDto;
+import ru.razumoff.dao.dto.response.EditUserProfileRsDto;
 import ru.razumoff.dto.integration.ProfileRsDto;
 import ru.razumoff.dao.dto.response.AvatarResponse;
 import ru.razumoff.dao.dto.response.UserProfileResponse;
+import ru.razumoff.jwt.JwtUserPrincipal;
 
 import java.util.List;
 import java.util.UUID;
@@ -14,4 +17,6 @@ public interface IUserService {
     AvatarResponse uploadAvatar(UUID uuid, MultipartFile avatarFile);
 
     List<ProfileRsDto> getUserProfilesByIds(List<UUID> userIds);
+
+    EditUserProfileRsDto editUserProfile(JwtUserPrincipal principal, EditUserProfileRqDto request);
 }

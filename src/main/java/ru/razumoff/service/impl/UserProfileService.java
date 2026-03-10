@@ -3,6 +3,8 @@ package ru.razumoff.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import ru.razumoff.dao.dto.request.EditUserProfileRqDto;
 import ru.razumoff.exceptions.ErrorCode;
 import ru.razumoff.exceptions.PlatformException;
 import ru.razumoff.dao.dto.request.RegisterRequest;
@@ -36,6 +38,7 @@ public class UserProfileService implements IUserProfileService {
      * Обновить S3 ключ аватарки пользователя
      */
     @Override
+    @Transactional
     public void updateProfileAvatar(UUID uuid, String s3Key) {
         UserProfileEntity entity = repository.findByUserId(uuid).orElseThrow(
                 () -> new PlatformException(ErrorCode.AUTH_USER_PROFILE_NOT_FOUND)
@@ -44,6 +47,20 @@ public class UserProfileService implements IUserProfileService {
         entity.setAvatarS3Key(s3Key);
         entity.setUpdatedAt(OffsetDateTime.now());
         repository.save(entity);
+    }
+
+    @Override
+    @Transactional
+    public void updateUserProfileData(UUID id, EditUserProfileRqDto request) {
+        UserProfileEntity userProfile = repository.findByUserId(id).orElseThrow(
+                () -> new PlatformException(ErrorCode.AUTH_USER_PROFILE_NOT_FOUND)
+        );
+
+        userProfile.setFirstName(request.getFirstName().trim());
+        userProfile.setLastName(request.getLastName().trim());
+        userProfile.setMiddleName(request.getMiddleName() != null ? request.getMiddleName().trim() : null);
+
+        repository.save(userProfile);
     }
 
     /**

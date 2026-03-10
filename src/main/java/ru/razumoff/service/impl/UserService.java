@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import ru.razumoff.dao.dto.request.EditUserProfileRqDto;
+import ru.razumoff.dao.dto.response.EditUserProfileRsDto;
 import ru.razumoff.dto.integration.ProfileRsDto;
 import ru.razumoff.exceptions.ErrorCode;
 import ru.razumoff.exceptions.PlatformException;
@@ -13,6 +15,7 @@ import ru.razumoff.dao.dto.response.UserProfileResponse;
 import ru.razumoff.dao.entity.UserEntity;
 import ru.razumoff.dao.entity.UserProfileEntity;
 import ru.razumoff.dao.repository.UserRepository;
+import ru.razumoff.jwt.JwtUserPrincipal;
 import ru.razumoff.minio.IMinioFileService;
 import ru.razumoff.service.IUserProfileService;
 import ru.razumoff.service.IUserService;
@@ -113,5 +116,25 @@ public class UserService implements IUserService {
                     );
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional
+    public EditUserProfileRsDto editUserProfile(JwtUserPrincipal principal, EditUserProfileRqDto request) {
+        principal.requirePermission("USER_UPDATE_OWN");
+
+        UUID userId = principal.getId();
+
+        UserEntity entity = userRepository.findById(userId).orElseThrow(
+                () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
+        );
+
+        userProfileService.updateUserProfileData(principal.getId(), request);
+
+        return EditUserProfileRsDto.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .middleName(request.getMiddleName())
+                .build();
     }
 }
