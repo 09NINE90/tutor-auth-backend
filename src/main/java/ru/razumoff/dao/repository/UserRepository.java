@@ -14,6 +14,11 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     Optional<UserEntity> findByEmail(String email);
     Optional<UserEntity> findByUsername(String username);
 
+    @Query("SELECT u FROM UserEntity u " +
+            "LEFT JOIN FETCH u.role r " +
+            "LEFT JOIN FETCH r.permissions " +
+            "WHERE u.id = :userId AND u.enabled = true")
+    Optional<UserEntity> findByUserIdWithRolesAndPermissions(@Param("userId") UUID userId);
 
     @Query("SELECT u FROM UserEntity u " +
             "LEFT JOIN FETCH u.role r " +

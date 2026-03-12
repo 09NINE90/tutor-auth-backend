@@ -1,9 +1,7 @@
 package ru.razumoff.service.impl;
 
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
@@ -11,21 +9,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.razumoff.config.security.JwtService;
+import ru.razumoff.dao.dto.internal.TokensAndPermissionsDto;
 import ru.razumoff.dao.entity.*;
-import ru.razumoff.dao.enumz.AuthEventType;
-import ru.razumoff.dao.repository.AuthEventRepository;
-import ru.razumoff.dao.repository.RefreshTokenRepository;
 import ru.razumoff.exceptions.ErrorCode;
 import ru.razumoff.exceptions.PlatformException;
 import ru.razumoff.dao.dto.request.LoginRequest;
 import ru.razumoff.dao.dto.request.RegisterRequest;
-import ru.razumoff.dao.dto.response.TokenResponse;
+import ru.razumoff.dao.dto.response.AuthRsDto;
 import ru.razumoff.dao.repository.RoleRepository;
 import ru.razumoff.dao.repository.UserRepository;
 import ru.razumoff.service.IAuthService;
+import ru.razumoff.service.ICookieService;
 import ru.razumoff.service.IUserProfileService;
+import ru.razumoff.utils.DtoUtils;
 
-import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -41,16 +38,14 @@ public class AuthService implements IAuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final RoleRepository roleRepository;
-    private final HttpServletRequest request;
-    private final AuthEventRepository authEventRepository;
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final ICookieService cookieService;
 
     /**
      * Регистрация нового пользователя STUDENT
      * Создает UserEntity + Profile + JWT токены
      */
     @Transactional
-    public TokenResponse register(RegisterRequest request) {
+    public AuthRsDto register(RegisterRequest request) {
         String username = request.getUsername().trim();
         String email = request.getEmail();
         boolean isValidEmail = email != null && !email.isEmpty();
@@ -69,7 +64,6 @@ public class AuthService implements IAuthService {
             user.setEmail(isValidEmail ? email : null);
             user.setPassword(passwordEncoder.encode(request.getPassword()));
             user.setEnabled(true);
-            user.setCreatedAt(OffsetDateTime.now());
 
             RoleEntity roleUser = getRoleEntity(request.isTutor());
 
@@ -78,34 +72,16 @@ public class AuthService implements IAuthService {
             UserEntity savedUser = userRepository.save(user);
             userProfileService.addUserProfile(user.getId(), request);
 
-            Set<String> permissionsNames = getPermissionsNames(savedUser);
+            TokensAndPermissionsDto tokens = getTokensAndPermissions(savedUser);
 
-            String access = jwtService.generateAccessToken(
-                    savedUser.getId(),
-                    savedUser.getUsername(),
-                    savedUser.getRole().getName(),
-                    permissionsNames
-            );
-            String refresh = jwtService.generateRefreshToken(
-                    savedUser.getId(),
-                    savedUser.getUsername().trim(),
-                    savedUser.getRole().getName(),
-                    permissionsNames
-            );
+            cookieService.addRefreshCookie(tokens.getRefreshToken());
 
-            saveAuthEvent(savedUser, username, AuthEventType.REGISTER_SUCCESS, null, null);
-            saveRefreshToken(savedUser, refresh, getDeviceInfo());
-
-            log.info("User registered success: {}", user);
-            return new TokenResponse(access, refresh, null);
+            log.info("User registered success: {}", user.getId());
+            return new AuthRsDto(tokens.getAccessToken(), tokens.getPermissions());
         } catch (PlatformException e) {
-            saveAuthEvent(null, email, AuthEventType.REGISTER_FAILED,
-                    e.getErrorCode().name(), e.getMessage());
             throw e;
         } catch (Exception e) {
             log.error("Registration failed for {}: {}", request.getEmail(), e.getMessage());
-            saveAuthEvent(null, email, AuthEventType.REGISTER_FAILED,
-                    ErrorCode.AUTH_REGISTRATION_FAILED.name(), e.getMessage());
             throw new PlatformException(ErrorCode.AUTH_REGISTRATION_FAILED);
         }
     }
@@ -117,11 +93,11 @@ public class AuthService implements IAuthService {
         RoleEntity roleUser;
         if (isTutor) {
             roleUser = roleRepository.findByName("TUTOR_LIMITED").orElseThrow(
-                    () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
+                    () -> new PlatformException(ErrorCode.ROLE_NOT_FOUND)
             );
         } else {
             roleUser = roleRepository.findByName("STUDENT_FULL").orElseThrow(
-                    () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
+                    () -> new PlatformException(ErrorCode.ROLE_NOT_FOUND)
             );
         }
         return roleUser;
@@ -131,7 +107,7 @@ public class AuthService implements IAuthService {
      * Авторизация пользователя по email/password
      * Возвращает JWT access+refresh токены
      */
-    public TokenResponse login(LoginRequest request) {
+    public AuthRsDto login(LoginRequest request) {
         String login = request.getLogin().trim();
 
         try {
@@ -142,37 +118,17 @@ public class AuthService implements IAuthService {
             );
             authenticationManager.authenticate(authToken);
 
+            TokensAndPermissionsDto tokens = getTokensAndPermissions(user);
 
-            String roleName = user.getRole().getName();
-            Set<String> permissionsNames = getPermissionsNames(user);
+            cookieService.addRefreshCookie(tokens.getRefreshToken());
 
-            String access = jwtService.generateAccessToken(
-                    user.getId(),
-                    user.getUsername(),
-                    roleName,
-                    permissionsNames
-            );
-            String refresh = jwtService.generateRefreshToken(
-                    user.getId(),
-                    user.getUsername(),
-                    roleName,
-                    permissionsNames
-            );
-
-            saveAuthEvent(user, login, AuthEventType.LOGIN_SUCCESS, null, null);
-            saveRefreshToken(user, refresh, getDeviceInfo());
-
-            log.info("User login success: {}", user);
-            return new TokenResponse(access, refresh, null);
+            log.info("User login success: {}", user.getId());
+            return new AuthRsDto(tokens.getAccessToken(), tokens.getPermissions());
         } catch (AuthenticationException ex) {
             log.warn("Login failed for {}: invalid credentials", request.getLogin());
-            saveAuthEvent(null, login, AuthEventType.LOGIN_FAILED,
-                    ErrorCode.AUTH_INVALID_CREDENTIALS.name(), "Invalid credentials");
             throw new PlatformException(ErrorCode.AUTH_INVALID_CREDENTIALS);
         } catch (Exception e) {
             log.error("Login failed for {}: {}", request.getLogin(), e.getMessage());
-            saveAuthEvent(null, login, AuthEventType.LOGIN_FAILED,
-                    ErrorCode.INTERNAL_ERROR.name(), e.getMessage());
             throw new PlatformException(ErrorCode.INTERNAL_ERROR);
         }
     }
@@ -181,54 +137,31 @@ public class AuthService implements IAuthService {
      * Обновление access токена по refresh токену
      * Выдает новую пару access+refresh токенов
      */
-    public TokenResponse refresh(String refreshToken) {
-        String oldRefreshToken = refreshToken;
-
+    public AuthRsDto refresh(String refreshToken) {
         try {
             if (!jwtService.isTokenValid(refreshToken)) {
-                saveAuthEvent(null, null, AuthEventType.REFRESH_FAILED,
-                        ErrorCode.AUTH_REFRESH_INVALID.name(), "Invalid refresh token");
+                cookieService.deleteRefreshCookie();
                 throw new PlatformException(ErrorCode.AUTH_REFRESH_INVALID);
             }
 
             UUID userId = jwtService.extractUserId(refreshToken);
-            UserEntity user = userRepository.findById(userId).orElseThrow(
-                    () -> new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND)
-            );
+            UserEntity user = userRepository.findByUserIdWithRolesAndPermissions(userId).orElseThrow(() -> {
+                cookieService.deleteRefreshCookie();
+                return new PlatformException(ErrorCode.AUTH_USER_NOT_FOUND);
+            });
 
-            UserEntity userWithRoles = getUserWithRolesAndPermissionsOrThrow(user.getUsername());
+            TokensAndPermissionsDto tokens = getTokensAndPermissions(user);
 
-            String roleName = userWithRoles.getRole().getName();
-            Set<String> permissionsNames = getPermissionsNames(userWithRoles);
-
-            String newAccess = jwtService.generateAccessToken(
-                    userWithRoles.getId(),
-                    userWithRoles.getUsername(),
-                    roleName,
-                    permissionsNames
-            );
-            String newRefresh = jwtService.generateRefreshToken(
-                    userWithRoles.getId(),
-                    userWithRoles.getUsername(),
-                    roleName,
-                    permissionsNames
-            );
-
-            revokeOldRefreshToken(oldRefreshToken);
-            saveRefreshToken(user, newRefresh, getDeviceInfo());
-            saveAuthEvent(user, user.getUsername(), AuthEventType.REFRESH_SUCCESS, null, null);
+            cookieService.addRefreshCookie(tokens.getRefreshToken());
 
             log.info("Token refreshed success. userId {}", userId);
-            return new TokenResponse(newAccess, newRefresh, null);
-
+            return new AuthRsDto(tokens.getAccessToken(), tokens.getPermissions());
         } catch (PlatformException e) {
-            saveAuthEvent(null, null, AuthEventType.REFRESH_FAILED,
-                    e.getErrorCode().name(), e.getMessage());
+            cookieService.deleteRefreshCookie();
             throw e;
         } catch (Exception e) {
+            cookieService.deleteRefreshCookie();
             log.error("Token refresh failed: {}", e.getMessage());
-            saveAuthEvent(null, null, AuthEventType.REFRESH_FAILED,
-                    ErrorCode.INTERNAL_ERROR.name(), e.getMessage());
             throw new PlatformException(ErrorCode.INTERNAL_ERROR);
         }
     }
@@ -237,28 +170,50 @@ public class AuthService implements IAuthService {
     @Transactional
     public void logout(String refreshToken) {
         try {
-            if (refreshToken != null && !refreshToken.isEmpty()) {
-                String tokenHash = DigestUtils.sha256Hex(refreshToken);
-                refreshTokenRepository.findByTokenHash(tokenHash).ifPresent(token -> {
-                    token.setRevokedAt(OffsetDateTime.now());
-                    refreshTokenRepository.save(token);
-
-                    saveAuthEvent(token.getUser(), token.getUser().getUsername(),
-                            AuthEventType.LOGOUT, null, null);
-
-                    log.info("User {} logged out successfully", token.getUser().getId());
-                });
-            }
+            cookieService.deleteRefreshCookie();
         } catch (Exception e) {
             log.error("Logout failed: {}", e.getMessage());
         }
     }
 
     /**
-     * Преобразование пермишенов пользователя в список названий
+     * Генерирует пару JWT токенов (access + refresh) и список разрешений пользователя.
+     *
+     * @param user пользователь с загруженными ролью и разрешениями (через FETCH JOIN)
+     * @return DTO с access токеном, refresh токеном и списком разрешений
+     */
+    private TokensAndPermissionsDto getTokensAndPermissions(UserEntity user) {
+        String roleName = DtoUtils.safelyGet(user, UserEntity::getRole, RoleEntity::getName);
+        Set<String> permissionsNames = getPermissionsNames(user);
+
+        String access = jwtService.generateAccessToken(
+                DtoUtils.safelyGet(user, UserEntity::getId),
+                DtoUtils.safelyGet(user, UserEntity::getUsername),
+                roleName,
+                permissionsNames
+        );
+        String refresh = jwtService.generateRefreshToken(
+                DtoUtils.safelyGet(user, UserEntity::getId),
+                DtoUtils.safelyGet(user, UserEntity::getUsername),
+                roleName,
+                permissionsNames
+        );
+
+        return TokensAndPermissionsDto.builder()
+                .accessToken(access)
+                .refreshToken(refresh)
+                .permissions(permissionsNames)
+                .build();
+    }
+
+    /**
+     * Извлекает названия разрешений из роли пользователя.
+     *
+     * @param user пользователь с загруженными разрешениями
+     * @return множество строковых названий разрешений, пустое множество если разрешений нет
      */
     private Set<String> getPermissionsNames(UserEntity user) {
-        return user.getRole().getPermissions()
+        return DtoUtils.safelyGetSet(user, UserEntity::getRole, RoleEntity::getPermissions)
                 .stream()
                 .map(PermissionEntity::getName)
                 .collect(Collectors.toSet());
@@ -277,132 +232,4 @@ public class AuthService implements IAuthService {
                 );
     }
 
-    /**
-     * Сохраняет событие аутентификации в историю.
-     * Метод перехватывает все исключения при сохранении, чтобы не прерывать основной поток выполнения.
-     *
-     * @param user         пользователь, совершивший действие (может быть null для неаутентифицированных событий)
-     * @param email        email пользователя на момент события
-     * @param eventType    тип события аутентификации (LOGIN_SUCCESS, LOGIN_FAILED, и т.д.)
-     * @param errorCode    код ошибки (для неуспешных событий)
-     * @param errorMessage детальное сообщение об ошибке (для неуспешных событий)
-     */
-    private void saveAuthEvent(UserEntity user, String email, AuthEventType eventType,
-                               String errorCode, String errorMessage) {
-        try {
-            AuthEventEntity event = AuthEventEntity.builder()
-                    .user(user)
-                    .email(email != null ? email : (user != null ? user.getEmail() : "unknown"))
-                    .eventType(eventType)
-                    .ipAddress(getClientIp())
-                    .userAgent(getUserAgent())
-                    .deviceInfo(getDeviceInfo())
-                    .errorCode(errorCode)
-                    .errorMessage(errorMessage)
-                    .createdAt(OffsetDateTime.now())
-                    .build();
-            authEventRepository.save(event);
-        } catch (Exception e) {
-            log.error("Failed to save auth event: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Сохраняет refresh токен в базе данных для последующего использования и управления сессиями.
-     * Токен сохраняется в виде хеша (SHA-256) для безопасности.
-     * Устанавливает срок действия токена - 30 дней с момента создания.
-     *
-     * @param user       пользователь, которому принадлежит токен
-     * @param token      оригинальный refresh токен (будет захеширован перед сохранением)
-     * @param deviceInfo информация об устройстве пользователя (из User-Agent)
-     */
-    private void saveRefreshToken(UserEntity user, String token, String deviceInfo) {
-        try {
-            String tokenHash = DigestUtils.sha256Hex(token);
-
-            RefreshTokenEntity refreshToken = RefreshTokenEntity.builder()
-                    .user(user)
-                    .tokenHash(tokenHash)
-                    .deviceInfo(deviceInfo)
-                    .ipAddress(getClientIp())
-                    .userAgent(getUserAgent())
-                    .expiresAt(OffsetDateTime.now().plusDays(30))
-                    .createdAt(OffsetDateTime.now())
-                    .build();
-            refreshTokenRepository.save(refreshToken);
-        } catch (Exception e) {
-            log.error("Failed to save refresh token: {}", e.getMessage());
-        }
-    }
-
-    /**
-     * Отзывает старый refresh токен при обновлении токенов (refresh).
-     * Помечает токен как отозванный (revoked), устанавливая дату отзыва.
-     * Используется для инвалидации старого токена после выдачи нового.
-     *
-     * @param oldRefreshToken старый refresh токен, который необходимо отозвать
-     */
-    private void revokeOldRefreshToken(String oldRefreshToken) {
-        if (oldRefreshToken != null) {
-            try {
-                String tokenHash = DigestUtils.sha256Hex(oldRefreshToken);
-                refreshTokenRepository.findByTokenHash(tokenHash).ifPresent(token -> {
-                    token.setRevokedAt(OffsetDateTime.now());
-                    refreshTokenRepository.save(token);
-                });
-            } catch (Exception e) {
-                log.error("Failed to revoke old refresh token: {}", e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Определяет реальный IP-адрес клиента с учетом прокси и балансировщиков нагрузки.
-     * Проверяет заголовки в следующем порядке:
-     * 1. X-Forwarded-For - стандартный заголовок для прокси
-     * 2. X-Real-IP - часто используется в Nginx
-     * 3. request.getRemoteAddr() - прямой IP, если нет прокси
-     *
-     * @return строковое представление IP-адреса клиента
-     */
-    private String getClientIp() {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader != null && !xfHeader.isEmpty()) {
-            return xfHeader.split(",")[0].trim();
-        }
-
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isEmpty()) {
-            return realIp;
-        }
-
-        return request.getRemoteAddr();
-    }
-
-    /**
-     * Получает значение заголовка User-Agent из HTTP запроса.
-     * User-Agent содержит информацию о браузере, операционной системе и устройстве клиента.
-     *
-     * @return строка User-Agent или null, если заголовок отсутствует
-     */
-    private String getUserAgent() {
-        return request.getHeader("User-Agent");
-    }
-
-    /**
-     * Формирует информацию об устройстве клиента на основе User-Agent.
-     * Очищает User-Agent от управляющих символов и обрезает до 255 символов
-     * для безопасного хранения в базе данных.
-     *
-     * @return очищенная и обрезанная информация об устройстве (макс. 255 символов),
-     * или "Unknown" если User-Agent отсутствует
-     */
-    private String getDeviceInfo() {
-        String userAgent = getUserAgent();
-        if (userAgent == null || userAgent.isEmpty()) {
-            return "Unknown";
-        }
-        String cleanUserAgent = userAgent.replaceAll("[\\p{Cntrl}]]", " ");
-        return cleanUserAgent.substring(0, Math.min(cleanUserAgent.length(), 255));
-    }
 }

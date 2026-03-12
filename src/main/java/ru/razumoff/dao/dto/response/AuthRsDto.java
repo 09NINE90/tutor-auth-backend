@@ -5,11 +5,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Schema(description = "Ответ с токенами JWT доступа и обновления, а также ролями пользователя")
-public class TokenResponse {
+public class AuthRsDto {
 
     @Schema(
             description = "JWT токен доступа для аутентификации запросов",
@@ -18,14 +20,8 @@ public class TokenResponse {
     private String accessToken;
 
     @Schema(
-            description = "JWT токен обновления для получения нового access токена",
-            example = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9..."
+            description = "Список разрешений пользователя"
     )
-    private String refreshToken;
+    private Set<String> permissions;
 
-    @Schema(
-            description = "Массив ролей пользователя, полученных после аутентификации",
-            example = "['USER', 'STUDENT']"
-    )
-    private String[] roles;
 }

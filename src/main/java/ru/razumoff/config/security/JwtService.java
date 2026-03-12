@@ -84,6 +84,7 @@ public class JwtService {
     }
 
     public boolean isTokenValid(String token) {
+        if (token == null || token.isEmpty()) return false;
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(getSigningKey())

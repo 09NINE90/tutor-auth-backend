@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'ru.razumoff.common:api-errors:1.0.0'
+    implementation 'ru.razumoff.common:api-errors:1.0.6'
     implementation 'ru.razumoff.common:base-utils:1.0.0'
     implementation 'ru.razumoff.common:jwt:1.0.2'
 

@@ -1,6 +1,7 @@
 package ru.razumoff.service.impl;
 
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;
@@ -12,13 +13,15 @@ import static ru.razumoff.Constants.REFRESH_COOKIE_NAME;
 
 
 @Service
+@RequiredArgsConstructor
 public class CookieService implements ICookieService {
 
+    private final HttpServletResponse response;
 
     /**
      * Установка refresh токена в httpOnly cookie (7 дней)
      */
-    public void addRefreshCookie(HttpServletResponse response, String refreshToken) {
+    public void addRefreshCookie(String refreshToken) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
                 .secure(false) // todo для локальной разработки
@@ -32,7 +35,7 @@ public class CookieService implements ICookieService {
     /**
      * Удаление refresh cookie (maxAge=0)
      */
-    public void deleteRefreshCookie(HttpServletResponse response) {
+    public void deleteRefreshCookie() {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
                 .httpOnly(true)
                 .secure(false) // todo для локальной разработки

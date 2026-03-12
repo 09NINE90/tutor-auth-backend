@@ -2,14 +2,14 @@ package ru.razumoff.service;
 
 import ru.razumoff.dao.dto.request.LoginRequest;
 import ru.razumoff.dao.dto.request.RegisterRequest;
-import ru.razumoff.dao.dto.response.TokenResponse;
+import ru.razumoff.dao.dto.response.AuthRsDto;
 
 public interface IAuthService {
-    TokenResponse register(RegisterRequest request);
+    AuthRsDto register(RegisterRequest request);
 
-    TokenResponse login(LoginRequest request);
+    AuthRsDto login(LoginRequest request);
 
-    TokenResponse refresh(String refreshToken);
+    AuthRsDto refresh(String refreshToken);
 
     void logout(String refreshToken);
 }
