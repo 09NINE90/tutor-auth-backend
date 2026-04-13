@@ -24,9 +24,9 @@ public class CookieService implements ICookieService {
     public void addRefreshCookie(String refreshToken) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, refreshToken)
                 .httpOnly(true)
-                .secure(false) // todo для локальной разработки
+                .secure(true)
                 .path("/")
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .maxAge(Duration.ofDays(7))
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
@@ -38,9 +38,9 @@ public class CookieService implements ICookieService {
     public void deleteRefreshCookie() {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, "")
                 .httpOnly(true)
-                .secure(false) // todo для локальной разработки
+                .secure(true)
                 .path("/")
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .maxAge(0)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());

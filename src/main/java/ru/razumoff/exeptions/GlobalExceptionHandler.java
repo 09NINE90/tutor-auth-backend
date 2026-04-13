@@ -1,6 +1,7 @@
 package ru.razumoff.exeptions;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,12 +16,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(PlatformException.class)
     public ResponseEntity<ApiError> handlePlatformException(PlatformException ex,
                                                             HttpServletRequest request) {
+        log.warn("Platform exception occurred: {} (code: {})", ex.getCustomMessage(), ex.getErrorCode(), ex);
+
         ErrorCode code = ex.getErrorCode();
         String message = ex.getCustomMessage() != null
                 ? ex.getCustomMessage()
@@ -40,6 +44,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex,
                                                   HttpServletRequest request) {
+        log.error("Unhandled generic exception occurred at URI: {}", request.getRequestURI(), ex);
+
         ApiError error = new ApiError(
                 Instant.now(),
                 500,
@@ -47,11 +53,12 @@ public class GlobalExceptionHandler {
                 "Internal server error",
                 request.getRequestURI()
         );
-        return ResponseEntity.status(500).body(error);
+        return ResponseEntity.internalServerError().body(error);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
+        log.warn("Validation errors occurred", ex);
         ApiError error = new ApiError(
                 Instant.now(),
                 400,

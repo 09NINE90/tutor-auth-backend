@@ -12,19 +12,24 @@ import java.time.OffsetDateTime;
 @Table(name = "permissions")
 public class PermissionEntity {
 
+    /** Уникальный идентификатор права */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** Уникальное название права (например, READ, WRITE) */
     @Column(unique = true, nullable = false)
     private String name;
 
+    /** Текстовое описание права */
     @Column(length = 200)
     private String description;
 
+    /** Категория права (группировка по функциональности) */
     @Column(length = 50)
     private String category;
 
+    /** Дата и время создания записи */
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
 
