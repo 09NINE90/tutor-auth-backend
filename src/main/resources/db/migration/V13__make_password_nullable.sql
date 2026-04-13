@@ -1,0 +1,5 @@
+ALTER TABLE users
+    ALTER COLUMN password DROP NOT NULL;
+
+ALTER TABLE users
+    ADD COLUMN external_id VARCHAR(255) DEFAULT NULL;

@@ -31,4 +31,8 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
             "LEFT JOIN FETCH r.permissions " +
             "WHERE u.username = :username AND u.enabled = true")
     Optional<UserEntity> findByUsernameWithRolesAndPermissions(@Param("username") String username);
+
+    @Query("SELECT u FROM UserEntity u LEFT JOIN FETCH u.role r LEFT JOIN FETCH r.permissions " +
+            "WHERE u.username = :login OR u.email = :login")
+    Optional<UserEntity> findByUsernameOrEmailWithRoleAndPermissions(String login);
 }

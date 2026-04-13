@@ -17,6 +17,17 @@ import java.io.IOException;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * JWT-фильтр аутентификации.
+ * <p>
+ * Перехватывает каждый HTTP-запрос, извлекает JWT токен из заголовка
+ * {@code Authorization} и устанавливает контекст безопасности Spring Security.
+ * </p>
+ * <p>
+ * Пропускает OAuth2-пути (/login/oauth2/, /oauth2/, /login/), т.к. они
+ * обрабатываются отдельно Spring Security OAuth2.
+ * </p>
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -24,12 +35,37 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
+    /**
+     * Основной метод фильтрации запросов.
+     * <p>
+     * Извлекает токен из заголовка {@code Authorization: Bearer <token>},
+     * валидирует его и при успехе создаёт {@link UsernamePasswordAuthenticationToken}
+     * с информацией о пользователе, ролях и правах.
+     * </p>
+     *
+     * @param request     HTTP-запрос
+     * @param response    HTTP-ответ
+     * @param filterChain цепочка фильтров
+     * @throws ServletException при ошибках сервлета
+     * @throws IOException      при ошибках ввода-вывода
+     */
     @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+
+        String path = request.getRequestURI();
+
+        boolean isOAuthPath = path.startsWith("/login/oauth2/") ||
+                path.startsWith("/oauth2/") ||
+                path.startsWith("/login/");
+
+        if (isOAuthPath) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -73,6 +109,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 );
 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                log.debug("Authenticated user: {} with role: {}", username, role);
             }
 
         } catch (Exception e) {
