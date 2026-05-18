@@ -22,7 +22,7 @@
 
 ## Быстрый старт
 
-**Требования:** Java 21, PostgreSQL, MinIO
+**Требования:** Java 25, PostgreSQL, MinIO
 
 1. Скопируйте `template.env` → `.env` и заполните переменные
 2. Запустите PostgreSQL и MinIO
@@ -36,9 +36,9 @@
 
 | Категория        | Технологии                                                  |
 |------------------|-------------------------------------------------------------|
-| **Язык**         | Java 21                                                     |
-| **Фреймворк**    | Spring Boot 3.5.9                                           |
-| **Сборка**       | Gradle 8.14.3                                               |
+| **Язык**         | Java 25                                                     |
+| **Фреймворк**    | Spring Boot 4.0.6                                           |
+| **Сборка**       | Gradle 9.5.0                                                |
 | **БД**           | PostgreSQL + Flyway                                         |
 | **Безопасность** | Spring Security, JWT (jjwt 0.12.6), OAuth2 (Google, Яндекс) |
 | **Хранилище**    | MinIO (S3-совместимое, для аватаров)                        |
@@ -275,7 +275,7 @@ docker build -t tutor-auth .
 docker run -p 8081:8081 --env-file .env tutor-auth
 ```
 
-Образ: `eclipse-temurin:21-jre`, порт `8081`.
+Образ: `eclipse-temurin:25-jdk`, порт `8081`.
 
 ---
 
