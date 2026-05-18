@@ -10,7 +10,7 @@ server:
 
 spring:
   application:
-    name: Цифровой портал для репетиторов (сервис для работы с пользователями и авторизацией)
+    name: tutor-auth
     version: 1.0
   security:
     oauth2:

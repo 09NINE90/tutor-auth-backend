@@ -1,7 +1,6 @@
 package ru.razumoff.minio;
 
 import io.minio.*;
-import io.minio.http.Method;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,7 +64,7 @@ public class MinioFileService implements IMinioFileService {
         try {
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
-                            .method(Method.GET)
+                            .method(Http.Method.GET)
                             .bucket(bucketName)
                             .object(s3Key)
                             .expiry(7 * 24 * 60 * 60)
@@ -86,7 +85,7 @@ public class MinioFileService implements IMinioFileService {
 
         minioClient.putObject(PutObjectArgs.builder()
                 .bucket(bucketName).object(fileName)
-                .stream(imageFile.getInputStream(), imageFile.getSize(), -1)
+                .stream(imageFile.getInputStream(), imageFile.getSize(), -1L)
                 .contentType(imageFile.getContentType())
                 .build());
 
